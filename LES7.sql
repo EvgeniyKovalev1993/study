@@ -1,4 +1,3 @@
-
 DROP TABLE IF EXISTS catalogs;
 CREATE TABLE catalogs (
   id SERIAL PRIMARY KEY,
@@ -12,6 +11,16 @@ INSERT INTO catalogs VALUES
   (NULL, 'Видеокарты'),
   (NULL, 'Жесткие диски'),
   (NULL, 'Оперативная память');
+
+DROP TABLE IF EXISTS rubrics;
+CREATE TABLE rubrics (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) COMMENT 'Название раздела'
+) COMMENT = 'Разделы интернет-магазина';
+
+INSERT INTO rubrics VALUES
+  (NULL, 'Видеокарты'),
+  (NULL, 'Память');
 
 DROP TABLE IF EXISTS users;
 CREATE TABLE users (
@@ -34,7 +43,7 @@ DROP TABLE IF EXISTS products;
 CREATE TABLE products (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255) COMMENT 'Название',
-  description TEXT COMMENT 'Описание',
+  desription TEXT COMMENT 'Описание',
   price DECIMAL (11,2) COMMENT 'Цена',
   catalog_id INT UNSIGNED,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -104,73 +113,54 @@ CREATE TABLE storehouses_products (
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) COMMENT = 'Запасы на складе';
 
--- 1 задание
-UPDATE users SET created_at=NULL;
-UPDATE users SET updated_at=NULL;
+-- ДЗ
 
--- Странно, почему-то при выполнении команды на заполнение столбца created_at заполняется и updated_at...
--- Я так понимаю, что после обновления таблицы, эти 2 столбца формируются заново, а при создании таблицы мы и указали им
--- эти значения.
-UPDATE users SET created_at=NOW();
-UPDATE users SET updated_at=NOW();
 
--- 2 задание
-ALTER TABLE users MODIFY created_at VARCHAR(255);
-ALTER TABLE users MODIFY updated_at VARCHAR(255);
 SELECT * FROM users;
-UPDATE 
-users 
-SET 
-created_at = STR_TO_DATE(created_at, '%d.%m.%Y %k:%i'),
-created_at = STR_TO_DATE(updated_at, '%d.%m.%Y %k:%i');
-UPDATE users SET created_at = '20.10.2019 8:10';
-
-ALTER TABLE users MODIFY created_at DATETIME DEFAULT CURRENT_TIMESTAMP;
-
--- 3 задание
-INSERT INTO storehouses_products(id, storehouse_id,product_id,value)
-VALUES
-(1, 1, 1, 12),
-(2, 1, 2, 4),
-(3, 1, 3, 1),
-(4, 2, 4, 0),
-(5, 2, 1, 0),
-(6, 3, 2, 1);
-
 use shop;
-SELECT *
-FROM storehouses_products
-ORDER BY
-	value = 0, value 
-;
+INSERT INTO orders(user_id) VALUES (1),(2),(3),(3),(3);
+-- Задание 1
+SELECT DISTINCT name
+FROM orders JOIN users ON users.id = orders.user_id;
 
-SELECT * FROM storehouses_products;
+-- Задание 2
+SELECT * FROM products;
+SELECT * FROM catalogs;
 
--- 4 задание
-USE shop;
-SELECT * 
-FROM users 
-WHERE DATE_FORMAT(birthday_at, '%M') = 'May' OR DATE_FORMAT(birthday_at, '%M') = 'August';
--- 5 задание не получается
-SELECT * FROM catalogs WHERE id IN (5, 1, 2)
-ORDER BY
-FIELD(id, 5, 1, 2)
-; 
+SELECT products.name as product, catalogs.name as catalog
+FROM products JOIN catalogs WHERE products.catalog_id = catalogs.id;
 
--- Агрегация данных
--- 1 задание
-SELECT FLOOR(avg(TIMESTAMPDIFF(YEAR, birthday_at, NOW()))) as age FROM users;
--- 2 задание
-SELECT DATE_FORMAT(CONCAT(DATE_FORMAT(NOW(),'%Y'),'.', DATE_FORMAT(birthday_at, '%m'), '.', DATE_FORMAT(birthday_at, '%d')), '%W') AS days, count('days') as Count_Day
-FROM users
-GROUP BY days;
--- 3 задание
-CREATE TABLE value(value INT);
-INSERT INTO value(value) VALUES
-(1),
-(2),
-(3),
-(4),
-(5);
-SELECT * FROM value;
-SELECT EXP(SUM(LOG(value))) as Proizved FROM value;
+-- Задание 3
+CREATE TABLE flights (
+	id int UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+	from_town varchar(255) NOT NULL,
+	to_town VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE cities (
+	label VARCHAR(255) NOT NULL,
+	name VARCHAR(255) NOT NULL
+);
+
+INSERT INTO flights VALUES 
+(1, 'moscow', 'omsk'),
+(2, 'novgorod', 'kazan'),
+(3, 'irkutsk', 'moscow'),
+(4,'omsk', 'irkutsk'),
+(5,'moscow', 'kazan');
+
+INSERT INTO cities VALUES
+('moscow', 'Москва'),
+('irkutsk', 'Иркутск'),
+('novgorod', 'Новгород'),
+('kazan', 'Казань'),
+('omsk', 'Омск');
+SELECT * FROM flights;
+SELECT * FROM cities;
+use shop;
+
+SELECT id, city_from, city_to
+FROM (SELECT id, from_town as from_t, to_town as to_t,
+	(SELECT DISTINCT name FROM cities JOIN flights ON cities.label = flights.from_town WHERE label = from_t) as city_from,
+	(SELECT DISTINCT name FROM cities JOIN flights ON cities.label = flights.to_town WHERE label = to_t) as city_to
+	FROM flights) as rus;
